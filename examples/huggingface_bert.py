@@ -36,18 +36,20 @@ from patrickstar.utils import get_rank
 
 from imdb_dataset import get_dataset
 
+import time
+import deepspeed
 
 # Uncomment these lines when doing multiprocess training
 # torch.distributed.init_process_group(backend='nccl')
 # torch.cuda.set_device(get_rank())
 
-train_dataset, _, test_dataset = get_dataset("/root/aclImdb")
+train_dataset, _, test_dataset = get_dataset("./aclImdb")
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
 def model_func():
-    model = BertForSequenceClassification.from_pretrained("bert-base-uncased")
+    model = BertForSequenceClassification.from_pretrained("./bert_base_case")
     # For large models, please uncomment the following lines to utilize gradient checkpointing
     # model.gradient_checkpointing_enable()
     return model
@@ -79,11 +81,17 @@ config = {
     "use_cpu_embedding": False,
 }
 
-model, optim = initialize_engine(
-    model_func=model_func, local_rank=get_rank(), config=config
-)
+start_time = time.time()
 
-train_loader = DataLoader(train_dataset, batch_size=16, shuffle=True)
+# patricstar入口
+# model, optim = initialize_engine(
+#     model_func=model_func, local_rank=get_rank(), config=config
+# )
+
+# deepspeed优化器入口
+model, optimizer = deepspeed.initialize(model=model_func, config_params=config)
+
+train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
 
 print("train loss:")
 
@@ -104,7 +112,7 @@ model.eval()
 
 print("test loss:")
 
-test_loader = DataLoader(test_dataset, batch_size=16, shuffle=False)
+test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 for i, batch in enumerate(test_loader):
     input_ids = batch["input_ids"].to(device)
     attention_mask = batch["attention_mask"].to(device)
@@ -114,3 +122,8 @@ for i, batch in enumerate(test_loader):
     print(i, loss.item())
     if i == 5:
         break
+
+end_time = time.time()
+
+elapsed_time = end_time - start_time
+print(f"代码执行耗时: {elapsed_time} 秒")

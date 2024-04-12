@@ -32,7 +32,7 @@ from pathlib import Path
 
 import torch
 from sklearn.model_selection import train_test_split
-from transformers import BertTokenizerFast
+from transformers import BertTokenizerFast, BertTokenizer
 
 
 # wget http://ai.stanford.edu/~amaas/data/sentiment/aclImdb_v1.tar.gz
@@ -55,7 +55,7 @@ def get_dataset(data_path):
         train_texts, train_labels, test_size=0.2
     )
 
-    tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
+    tokenizer = BertTokenizer.from_pretrained("./bert_base_case")
 
     train_encodings = tokenizer(train_texts, truncation=True, padding=True)
     val_encodings = tokenizer(val_texts, truncation=True, padding=True)
