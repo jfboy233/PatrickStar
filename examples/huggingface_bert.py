@@ -84,18 +84,20 @@ config = {
 start_time = time.time()
 
 # patricstar入口
-# model, optim = initialize_engine(
-#     model_func=model_func, local_rank=get_rank(), config=config
-# )
+model, optim = initialize_engine(
+    model_func=model_func, local_rank=get_rank(), config=config
+)
 
 # deepspeed优化器入口
-model, optimizer = deepspeed.initialize(model=model_func, config_params=config)
+# model, optimizer = deepspeed.initialize(model=model_func, config_params=config)
 
 train_loader = DataLoader(train_dataset, batch_size=1, shuffle=True)
 
 print("train loss:")
 
 for i, batch in enumerate(train_loader):
+    # 梯度清零
+    print(batch)
     optim.zero_grad()
     input_ids = batch["input_ids"].to(device)
     attention_mask = batch["attention_mask"].to(device)
@@ -103,6 +105,7 @@ for i, batch in enumerate(train_loader):
     outputs = model(input_ids, attention_mask=attention_mask, labels=labels)
     loss = outputs[0]
     model.backward(loss)
+    # 调用优化器更新梯度
     optim.step()
     print(i, loss.item())
     if i == 10:

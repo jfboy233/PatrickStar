@@ -73,6 +73,9 @@ def initialize_engine(model_func, local_rank, config=None, client=None):
             use_cpu_embedding = config.get("use_cpu_embedding", True)
 
         # 创建client，调用start_mem_tracer
+        # print("*********************************************")
+        # print(config.get("client", None))
+        # 输出结果为none
         client = PatrickStarClient(
             rank=local_rank,
             default_chunk_size=default_chunk_size,
@@ -92,7 +95,8 @@ def initialize_engine(model_func, local_rank, config=None, client=None):
         log_dist(
             f"finished initialized the model parameters... {end_time  - start_time} s"
         )
-
+    # client提供chunk管理功能，作为参数传入engine中
     engine = PatrickStarEngine(model=model, client=client, config=config)
+    # 启动一个tracer线程
     client.start_mem_tracer()
     return (engine, engine.optimizer)

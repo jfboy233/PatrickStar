@@ -45,6 +45,10 @@ class ChunkTensorIndex(object):
         Every process will maintain a `ChunkTensorIndex` instance.
         It is created during preprocessing with the define of the model.
         Only add and search supported, no delete or update.
+        存储张量和数据块的索引信息。
+        每个进程将维护一个`ChunkTensorIndex`实例。
+        它是在预处理阶段根据模型定义创建的。
+        只支持添加和搜索操作，不支持删除或更新。
 
         Args:
             default_chunk_size: int.

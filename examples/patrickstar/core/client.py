@@ -45,11 +45,13 @@ class PatrickStarClient(object):
     r"""The client for managing chunks."""
 
     def __init__(self, rank: int, default_chunk_size: int, config=None):
+        # rank是干啥的不太清楚
         self.local_rank = rank
+        # 设置device
         self.device = torch.device(f"cuda:{rank}")
 
         self.module = None
-
+        # tracer的配置
         default_tracer_config = {
             "use_async_mem_monitor": True,
             "warmup_gpu_chunk_mem_ratio": 0.1,
@@ -59,6 +61,7 @@ class PatrickStarClient(object):
             "use_fake_dist": False,
             "with_static_partition": False,
         }
+
         default_opt_config = {
             "with_mem_saving_comm": False,
             "with_mem_cache": False,
@@ -74,17 +77,21 @@ class PatrickStarClient(object):
             tracer_config = default_tracer_config
             opt_config = default_opt_config
 
+        # 实例化mem_tracer
         self.mem_tracer = RuntimeMemTracer(
             self.local_rank, tracer_config, opt_config["with_mem_saving_comm"]
         )
         self.opt_config = opt_config
 
+        # 实例化驱逐策略，传入tracer参数
         self.chunk_eviction_strategy = LatestAccessChunkEvictionPolicy(
             self.mem_tracer.metronome
         )
 
         self.default_chunk_size = default_chunk_size
+        # TODO(创建chunk和tensor的索引，根据模型定义创建设置的？不太理解)
         self.chunk_tensor_index = ChunkTensorIndex(self.default_chunk_size)
+        # 初始化一个chunklist，传入strategy、tracer和local rank
         self.chunk_list = ChunkList(
             self.local_rank,
             self.mem_tracer,

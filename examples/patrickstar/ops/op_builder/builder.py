@@ -414,8 +414,8 @@ class OpBuilder(ABC):
         extra_include_paths = [
             self.deepspeed_src_path(path) for path in self.include_paths()
         ]
-        print("*****************************")
-        print(self.strip_empty_entries(self.nvcc_args()), "   +   ", self.strip_empty_entries(self.extra_ldflags()))
+        # print("*****************************")
+        # print(self.strip_empty_entries(self.nvcc_args()), "   +   ", self.strip_empty_entries(self.extra_ldflags()))
         op_module = load(
             name=self.name,
             sources=self.strip_empty_entries(sources),

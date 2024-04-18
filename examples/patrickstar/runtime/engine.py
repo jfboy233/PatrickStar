@@ -44,6 +44,7 @@ class PatrickStarEngine(torch.nn.Module):
 
     def __init__(self, model, client, config):
         super(PatrickStarEngine, self).__init__()
+        # model参数，从huggingface中传入initialize_engine,传入patrickstarEngine
         self.module = model
         self.module.train()
 
@@ -108,10 +109,12 @@ class PatrickStarEngine(torch.nn.Module):
             optim_params = default_optim_config["params"]
             self.loss_scaler = None
             self.gradient_clipping = -1
+        # 以上部分均为参数配置
 
-        # This need to be placed before the initialization of optimizer.
+        # This need to be placed before the initialization of optimizer.优化器初始化前，把“一些数据”放在gpu中
         self._move_torch_parts_to_gpu(model)
 
+        # ops部分定义的优化器，基于deepspeed改的
         self.optimizer = FP16Adam(
             self.client,
             self.module.parameters(),
@@ -125,10 +128,11 @@ class PatrickStarEngine(torch.nn.Module):
             use_hybrid_adam=optim_params["use_hybrid_adam"],
         )
 
+        # 初始化client并传入module和opt参数
         self.client.init(self.module, self.optimizer)
         self.iteration_cnt_ = 0
         # TODO(jiaruifang) pass in via config.
-        self.warmup_times = 1
+        self.warmup_times = 10 
         log_dist("PatrickStarEngine initialized.")
 
     def _move_torch_parts_to_gpu(self, model):
@@ -139,11 +143,14 @@ class PatrickStarEngine(torch.nn.Module):
 
         def move_param_to_gpu(module):
             if module.__class__.__name__ == "Embedding":
+                # 跳过embedding数据，不将其移动到gpu中
                 return
             for param in module.parameters(recurse=False):
+                # 遍历模块的所有参数，并将每个参数的数据移动到指定的GPU设备上。
                 if param.ps_attr.param_type == ParamType.TORCH_BASED:
                     param.data = param.data.to(self.client.device)
             for submodule in module.children():
+                # 递归调用子模块
                 move_param_to_gpu(submodule)
 
         move_param_to_gpu(model)
@@ -181,17 +188,21 @@ class PatrickStarEngine(torch.nn.Module):
             **kwargs: variable length keyword arguments
         """
         # warmup logic, we have to make sure a iteration run the entire FWD+BWD process.
-        # Considering the grad overflow situation.
+        # Considering the grad overflow situation. 考虑梯度一处的情况
+        # 如果是第一次迭代（热身迭代）设置flag，否则关闭mem_tracer
         if self.iteration_cnt_ == 0:
             self.client.set_warmup(True)
         if self.iteration_cnt_ == self.warmup_times:
             self.client.set_warmup(False)
             self.client.mem_tracer.close_tracer()
 
+        # 在start_time中key为fwd的项开始计时，附一个时间戳，maybe？
         global_timer.my_timer.start_profile("FWD")
+        # 开启性能分析器
         if profiler.started():
             profiler.stage_convert_time.append((time.time(), TrainingStage.FWD))
-
+        
+        # 设置mem tracer阶段为FWD 
         self.client.set_training_phase(TrainingStage.FWD)
         self._reset_before_forward()
 
@@ -211,6 +222,7 @@ class PatrickStarEngine(torch.nn.Module):
             profiler.stage_convert_time.append((time.time(), TrainingStage.FWD))
         self.client.set_training_phase(TrainingStage.BWD)
 
+        # chunk based param列表存储的应该是fp16数据组织的块结构
         for param_fp16 in self.client.chunk_based_param_fp16:
             param_fp16.ps_attr.bwd_used_cnt = 0
 
