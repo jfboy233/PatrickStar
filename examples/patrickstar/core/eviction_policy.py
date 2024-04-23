@@ -37,14 +37,17 @@ import logging
 
 class ChunkEvictionPolicyBase(ABC):
     def __init__(self, metronome: Metronome):
+        # 创建两个dict，access和release
         self.chunk_access_dict = {}
         self.chunk_release_dict = {}
+        # 传入的metronome参数
         self.metronome = metronome
 
     def trace_access(self, chunk_id, dev):
         """
         Trace access information of chunk_id.
         Only works for the warmup phase.
+        跟踪access 的chunk 仅在warmup环节调用
         args:
             chunk_id : the id of chunk
             dev : the device uses the chunk at the moment
@@ -62,6 +65,7 @@ class ChunkEvictionPolicyBase(ABC):
         """
         Trace release information of chunk_id.
         Only works for the warmup phase.
+        跟踪被release的chunk
         args:
             chunk_id : the id of chunk
             dev : the device uses the chunk at the moment
@@ -70,14 +74,17 @@ class ChunkEvictionPolicyBase(ABC):
             return
         cur_mom = self.metronome.moment()
         if (chunk_id, dev) not in self.chunk_access_dict:
+            # 检查一个chunk_id,dev是否没有记录在chunk_access_dict中,如果没有记录，则在chunk_release_dict中为这个数据块和设备记录当前的时刻
             self.chunk_release_dict[(chunk_id, dev)] = [cur_mom]
         else:
+            # 如果已经有记录，则将当前时刻追加到chunk_release_dict中，并保持时刻的顺序。
             self.chunk_release_dict[(chunk_id, dev)].append(cur_mom)
             self.chunk_release_dict[(chunk_id, dev)].sort()
 
     def _chunk_next_used_moment(self, chunk_id, dev):
         """
         The very next memonet chunk_id has to be placed on dev.
+        紧接着的 memonet 数据块 ID 需要放置在开发设备上。
         """
         # warmup, every chunk has the same priority
         if self.metronome.is_warmup():
@@ -106,8 +113,15 @@ class LatestAccessChunkEvictionPolicy(ChunkEvictionPolicyBase):
         Evict the chunk latest to be accessed on the current device.
         """
         movable_chunk_info = []
+        # 创建了一个优先队列
         q = PriorityQueue()
         for chunk_id, chunk in id_to_chunk_map.items():
+            """
+            chunk对象有设备信息。
+            chunk对象的设备类型与target_device的类型相同。
+            chunk对象的状态不是COMPUTE、RELEASED或FREE。
+            chunk对象不是固定的。
+            """
             if (
                 chunk.get_device() is not None
                 and chunk.get_device().type == target_device.type

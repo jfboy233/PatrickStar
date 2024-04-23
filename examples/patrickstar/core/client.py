@@ -83,7 +83,7 @@ class PatrickStarClient(object):
         )
         self.opt_config = opt_config
 
-        # 实例化驱逐策略，传入tracer参数
+        # 实例化驱逐策略，传入tracer中metronome参数
         self.chunk_eviction_strategy = LatestAccessChunkEvictionPolicy(
             self.mem_tracer.metronome
         )
@@ -146,6 +146,7 @@ class PatrickStarClient(object):
         return self.mem_tracer.metronome.training_stage()
 
     def set_training_phase(self, phase):
+        # 传入状态字符
         self.mem_tracer.metronome.set_training_phase(phase)
 
     def set_warmup(self, flag):

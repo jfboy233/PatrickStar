@@ -97,7 +97,7 @@ print("train loss:")
 
 for i, batch in enumerate(train_loader):
     # 梯度清零
-    print(batch)
+    # print(batch)
     optim.zero_grad()
     input_ids = batch["input_ids"].to(device)
     attention_mask = batch["attention_mask"].to(device)

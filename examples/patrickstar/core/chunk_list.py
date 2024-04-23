@@ -50,6 +50,7 @@ class ChunkList(object):
     There are 4 kinds of chunk list:
         param fp16, param fp32, momentum, variance
     All of them are managed by one instance of this class.
+    创建4个实例？
     """
 
     generated_chunk_id = -1
@@ -66,7 +67,10 @@ class ChunkList(object):
         Args:
             local_rank: int.
         """
+        # id到chunk的映射map
         self.id_to_chunk_map: dict[int, Chunk] = {}
+        # 对于每个chunk_type，它将chunk_type作为键，一个空列表作为值，添加到chunk_type_to_id_list_map字典中。
+        # 这样，字典中的每个键都有一个对应的空列表，可以用来存储后续添加的整数
         self.chunk_type_to_id_list_map: dict[ChunkType, int] = {}
         for chunk_type in ChunkType:
             self.chunk_type_to_id_list_map[chunk_type] = []
@@ -75,8 +79,10 @@ class ChunkList(object):
         self.moments_cnt_of_iteration = None
         self.local_rank = local_rank
         self.device = torch.device(f"cuda:{local_rank}")
+        # 传入eviction policy 的参数
         self.chunk_eviction_policy = chunk_eviction_policy
         self.memory_tracer = memory_tracer
+        # 是否使用memory cache
         self.with_mem_cache = with_mem_cache
         if self.with_mem_cache:
             self.memory_cache = MemoryCache(2, self.memory_tracer)
@@ -90,6 +96,7 @@ class ChunkList(object):
             chunk_type: :class:`ChunkType`.
         """
         for chunk_id in self.chunk_type_to_id_list_map[chunk_type]:
+            # 使用yield关键字，逐个生成并返回列表中的chunk_id
             yield chunk_id
 
     def generate_chunk_id(self) -> int:

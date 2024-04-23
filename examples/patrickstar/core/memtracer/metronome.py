@@ -48,6 +48,8 @@ class Metronome(object):
         self.training_stage_mgr = TrainingStageMgr()
 
     def set_training_phase(self, phase):
+        # print("***************************************")
+        # print(phase)
         self.training_stage_mgr.training_phase = phase
 
     def set_warmup(self, flag):

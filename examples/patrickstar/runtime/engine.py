@@ -202,7 +202,7 @@ class PatrickStarEngine(torch.nn.Module):
         if profiler.started():
             profiler.stage_convert_time.append((time.time(), TrainingStage.FWD))
         
-        # 设置mem tracer阶段为FWD 
+        # 设置training阶段为FWD 
         self.client.set_training_phase(TrainingStage.FWD)
         self._reset_before_forward()
 
